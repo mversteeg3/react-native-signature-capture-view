@@ -1,20 +1,14 @@
+import React from "react";
+import { Platform } from "react-native";
+import { WebView } from "react-native-webview";
 
-import React from 'react';
-import {
-  StyleSheet,
-
-  View,
-
-  Platform,
-} from 'react-native';
-import {WebView} from 'react-native-webview';
-
+// Adapted from https://github.com/ahmed-rafiullah/react-native-signature-capture-view
 const listenerType = () => {
   switch (Platform.OS) {
-    case 'android':
-      return 'document';
-    case 'ios':
-      return 'window';
+    case "android":
+      return "document";
+    case "ios":
+      return "window";
   }
 };
 const sourceHtml = `
@@ -380,45 +374,39 @@ const sourceHtml = `
 </script>
 </html>
 `;
-
-const styles = StyleSheet.create({
-  root: {
-    height: 200,
-  },
-});
-
 export class SignatureView extends React.PureComponent {
-  constructor({onSave, onClear}) {
+  constructor({ onSave, onClear, initialSignature }) {
     super();
     this.webViewRef = React.createRef(null);
     this.state = {
       onSave: onSave,
       onClear: onClear,
+      initialSignature: initialSignature,
     };
   }
 
   saveSignature = () => {
-    this.webViewRef.current.postMessage('SAVE_SIGNATURE');
+    this?.webViewRef.current.postMessage("SAVE_SIGNATURE");
   };
 
   clearSignature = () => {
-    this.webViewRef.current.postMessage('CLEAR_SIGNATURE');
+    this.webViewRef.current.postMessage("CLEAR_SIGNATURE");
     this.state.onClear?.();
   };
 
   isEmpty = () => {
-    this.webViewRef.current.postMessage('IS_SIGNATURE_EMPTY');
+    this.webViewRef.current.postMessage("IS_SIGNATURE_EMPTY");
   };
 
   onMessage = (event) => {
     const parsedData = JSON.parse(event.nativeEvent.data);
 
     switch (parsedData.type) {
-      case 'IS_SIGNATURE_EMPTY':
+      case "IS_SIGNATURE_EMPTY":
         // console.log('IS_SIGNATURE_EMPTY', parsedData.isEmpty);
 
         break;
-      case 'SAVE_SIGNATURE':
+      case "SAVE_SIGNATURE":
         // console.log('SAVE_SIGNATURE', parsedData.dataURI);
         this.state.onSave?.(parsedData.dataURI);
         break;
@@ -426,24 +414,28 @@ export class SignatureView extends React.PureComponent {
   };
 
   render() {
+    const initializeWithSignatureData = `signaturePad.fromDataURL('${this.state.initialSignature}', { ratio: 1 })`;
     return (
-      <View
-        style={StyleSheet.compose(styles.root, this.props.style)}
-        {...this.props}>
-        <WebView
-          style={{width: '100%', height: '100%'}}
-          ref={(ref) => (this.webViewRef.current = ref)}
-          onMessage={this.onMessage}
-          javaScriptEnabled={true}
-          source={{
-            html: sourceHtml,
-            // uri:
-            //   'https://stackoverflow.com/questions/37455701/react-native-nested-scrollview-cant-scroll-on-android-device',
-          }}
-          scrollEnabled={false}
-          domStorageEnabled={true}
-        />
-      </View>
+      <WebView
+        style={{
+          borderColor: "grey",
+          borderWidth: 1,
+          height: "100%",
+        }}
+        ref={(ref) => (this.webViewRef.current = ref)}
+        onMessage={this.onMessage}
+        javaScriptEnabled={true}
+        injectedJavaScript={
+          this.state.initialSignature ? initializeWithSignatureData : ``
+        }
+        source={{
+          html: sourceHtml,
+          // uri:
+          //   'https://stackoverflow.com/questions/37455701/react-native-nested-scrollview-cant-scroll-on-android-device',
+        }}
+        scrollEnabled={false}
+        domStorageEnabled={true}
+      />
     );
   }
 }
